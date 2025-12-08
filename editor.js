@@ -320,22 +320,38 @@ function setupImageListeners(image) {
 
 
 /**
- * Selects a shape on the canvas, showing the transformer and sidebar.
+ * Selects a shape on the canvas, showing the correct transformer and sidebar.
  * @param {Konva.Shape} shape The shape to select.
  */
 function selectShape(shape) {
     const floatingToolbar = document.getElementById('floating-toolbar');
 
     selectedNode = shape;
-    selectedShape = shape; // ✅ CRITICAL: unify text + media selection systems
-    transformer.nodes([selectedNode]);
+    selectedShape = shape;
+
+    // Determine if the selected shape is a Konva.Image (Templates/Uploaded Images/Video) or an element
+    // explicitly marked as media (Audio).
+    const isImageOrMedia = shape.getClassName() === 'Image' || shape.getAttr('isMedia');
+
+    // 1. Clear *both* transformers first to ensure a clean state.
+    if (transformer) transformer.nodes([]);
+    if (imageTransformer) imageTransformer.nodes([]);
+
+    // 2. Apply the correct transformer based on the element type.
+    if (isImageOrMedia && imageTransformer) {
+        // Use the specialized imageTransformer for Images/Templates/Media
+        imageTransformer.nodes([selectedNode]);
+    } else if (transformer) {
+        // Use the general transformer for Text, Rectangles, etc.
+        transformer.nodes([selectedNode]);
+    }
+
     setupSidebar(selectedNode);
     if (floatingToolbar) floatingToolbar.classList.add('active');
+
     if (shape) {
-        // ...
         updateFloatingControls(shape);
     } else {
-        // ...
         updateFloatingControls(null);
     }
     layer.batchDraw();
